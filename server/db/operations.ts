@@ -62,3 +62,13 @@ export const getCategoriesWithSpent = async (): Promise<(Category & { spent: num
     GROUP BY c.id
   `);
 };
+
+export const executeCustomQuery = async <T>(sql: string): Promise<T[]> => {
+  // Validate that the SQL is a SELECT statement to prevent data modification
+  const normalizedSql = sql.trim().toLowerCase();
+  if (!normalizedSql.startsWith('select')) {
+    throw new Error('Only SELECT queries are allowed');
+  }
+
+  return dbAll<T>(sql);
+};

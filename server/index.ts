@@ -7,7 +7,8 @@ import {
   getAllCategories,
   addCategory,
   deleteCategory,
-  getCategoriesWithSpent
+  getCategoriesWithSpent,
+  executeCustomQuery
 } from './db/operations';
 
 const app = express();
@@ -19,6 +20,47 @@ app.use(cors({
 // Add OPTIONS handling for preflight requests
 app.options('*', cors());
 app.use(express.json());
+
+// Debug endpoint to check transactions
+app.get('/api/debug/transactions', async (req, res) => {
+  try {
+    const transactions = await getAllTransactions();
+    console.log('All transactions:', transactions);
+    res.json(transactions);
+  } catch (error) {
+    console.error('Error fetching transactions:', error);
+    res.status(500).json({ error: 'Failed to fetch transactions' });
+  }
+});
+
+// Voice query endpoint
+app.post('/api/voice-query', async (req, res) => {
+  const { sql, visualization, description } = req.body;
+  
+  console.log('POST /api/voice-query', { sql, visualization, description });
+  
+  try {
+    if (!sql) {
+      throw new Error('SQL query is required');
+    }
+
+    const results = await executeCustomQuery(sql);
+    console.log('Query results:', results);
+
+    res.json({
+      results,
+      visualization,
+      description
+    });
+  } catch (error) {
+    console.error('Error executing voice query:', error);
+    res.status(500).json({ 
+      error: error instanceof Error ? error.message : 'Failed to execute query',
+      sql, // Return the SQL that failed
+      details: error instanceof Error ? error.stack : undefined
+    });
+  }
+});
 
 // Transactions endpoints
 app.get('/api/transactions', async (req, res) => {
