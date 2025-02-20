@@ -79,3 +79,40 @@ const fileToBase64 = (file: File): Promise<string> => {
     reader.onerror = error => reject(error);
   });
 };
+
+export const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
+  if (!genAI) {
+    throw new Error("Gemini API not initialized. Please call initializeGemini first.");
+  }
+
+  try {
+    // Convert blob to base64
+    const base64Audio = await blobToBase64(audioBlob);
+
+    // Generate transcription
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent([
+      'Please transcribe this audio file accurately.',
+      {
+        inlineData: {
+          mimeType: 'audio/wav',
+          data: base64Audio.split(',')[1]
+        }
+      },
+    ]);
+
+    return result.response.text();
+  } catch (error) {
+    console.error('Error transcribing audio:', error);
+    throw error;
+  }
+};
+
+const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
