@@ -1,50 +1,71 @@
-# React + TypeScript + Vite
+# Budget Voice Assistant App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern budget tracking application built with React, TypeScript, and Vite. Features include expense tracking, category management, data visualization, and voice command capabilities using Google's Gemini AI.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 💰 Track expenses and income
+- 📊 Visual data representation with charts
+- 🗂️ Category-based organization
+- 🎤 Voice command support using Gemini AI
+- 💾 SQLite database for data persistence
+- 🎯 Real-time budget tracking
 
-## Expanding the ESLint configuration
+## Prerequisites
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+- Node.js (v18 or higher)
+- Bun (recommended) or npm
+- Google Gemini API key
 
-- Configure the top-level `parserOptions` property like this:
+## Setup
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd gemini-presupuesto-voz
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+2. Install dependencies:
+```bash
+# Using Bun (recommended)
+bun install
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
-
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+# Using npm
+npm install
 ```
+
+3. Create a `.env` file in the root directory and add your Gemini API key:
+```env
+VITE_GEMINI_API_KEY=your_api_key_here
+```
+
+## Running the Application
+
+1. Start the backend server:
+```bash
+# Using Bun
+bun server/index.ts
+
+# Using npm
+npm run server
+```
+
+2. In a new terminal, start the frontend development server:
+```bash
+# Using Bun
+bun dev
+
+# Using npm
+npm run dev
+```
+
+The application will be available at `http://localhost:5173`
+
+## Using Voice Commands
+
+1. Click the "Voice Report" button in the dashboard
+2. Allow microphone access when prompted
+3. Click "Start Recording" and speak your command
+4. Click "Stop Recording" when finished
+5. Wait for the transcription and response
+
