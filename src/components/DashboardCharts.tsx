@@ -1,6 +1,5 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from 'recharts';
 import { useBudget } from '../contexts/BudgetContext';
-import { getLocalStorageItem } from '../utils/localStorage';
 
 export function SpendingByCategoryChart() {
   const { transactions, categories } = useBudget();

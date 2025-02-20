@@ -1,21 +1,17 @@
 import { createContext, useContext, ReactNode, useState, useEffect, useMemo } from 'react';
-import { getLocalStorageItem, setLocalStorageItem } from '../utils/localStorage';
+import { 
+  Transaction, 
+  Category,
+  CategoryWithSpent,
+  getAllTransactions,
+  getAllCategories,
+  addTransaction as apiAddTransaction,
+  addCategory as apiAddCategory,
+  deleteTransaction as apiDeleteTransaction,
+  deleteCategory as apiDeleteCategory,
+} from '../api/budgetApi';
 
-type Transaction = {
-  id: string;
-  description: string;
-  amount: number;
-  category: string;
-  date: string;
-};
-
-type Category = {
-  id: string;
-  name: string;
-  budget: number;
-};
-
-type CategoryWithSpent = Category & { spent: number };
+// CategoryWithSpent is already imported from budgetApi
 
 type BudgetContextType = {
   transactions: Transaction[];
@@ -31,22 +27,42 @@ type BudgetContextType = {
 const BudgetContext = createContext<BudgetContextType | null>(null);
 
 export function BudgetProvider({ children }: { children: ReactNode }) {
-  const [transactions, setTransactions] = useState<Transaction[]>(
-    getLocalStorageItem('transactions') || []
-  );
-  const [categories, setCategories] = useState<Category[]>(
-    getLocalStorageItem('categories') || []
-  );
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [budgets, setBudgets] = useState<any[]>([]);
 
-  // Persist state changes
+  // Load initial data
   useEffect(() => {
-    setLocalStorageItem('transactions', transactions);
-  }, [transactions]);
+    console.log('BudgetProvider mounted');
+    const loadData = async () => {
+      console.log('Loading initial data...');
+      try {
+        console.log('Fetching transactions and categories...');
+        const [transactions, categories] = await Promise.all([
+          getAllTransactions(),
+          getAllCategories()
+        ]);
+        console.log('Received transactions:', transactions);
+        console.log('Received categories:', categories);
 
-  useEffect(() => {
-    setLocalStorageItem('categories', categories);
-  }, [categories]);
+        // Ensure we have arrays
+        const safeTransactions = Array.isArray(transactions) ? transactions : [];
+        const safeCategories = Array.isArray(categories) ? categories : [];
+
+        console.log('Setting transactions:', safeTransactions);
+        console.log('Setting categories:', safeCategories);
+
+        setTransactions(safeTransactions);
+        setCategories(safeCategories);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        // Initialize with empty arrays on error
+        setTransactions([]);
+        setCategories([]);
+      }
+    };
+    loadData();
+  }, []);
 
   // Memoize the calculate spent function
   const calculateSpent = useMemo(() => {
@@ -87,13 +103,24 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
 
   // Memoize categories with spent amounts
   const categoriesWithSpent = useMemo(() => {
-    return categories.map(category => ({
-      ...category,
-      spent: calculateSpent(category.id)
-    }));
+    console.log('Calculating categoriesWithSpent, categories:', categories);
+    if (!Array.isArray(categories)) {
+      console.error('categories is not an array:', categories);
+      return [];
+    }
+    return categories.map(category => {
+      if (!category || !category.id) {
+        console.error('Invalid category:', category);
+        return { ...category, spent: 0 };
+      }
+      return {
+        ...category,
+        spent: calculateSpent(category.id)
+      };
+    });
   }, [categories, calculateSpent]);
 
-  const addTransaction = (transactionData: Omit<Transaction, 'id'>) => {
+  const addTransaction = async (transactionData: Omit<Transaction, 'id'>) => {
     console.log('Adding transaction:', transactionData);
     
     // Validate category
@@ -102,45 +129,71 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const transaction: Transaction = {
-      ...transactionData,
-      id: crypto.randomUUID(),
-      // Ensure amount is a number
-      amount: parseFloat(String(transactionData.amount)),
-      // Keep the category ID as is - it's already validated
-      category: transactionData.category
-    };
-    
-    console.log('Saving transaction:', transaction);
-    setTransactions(prev => [
-      ...prev,
-      transaction
-    ]);
+    try {
+      // Add to database through API
+      const newTransaction = await apiAddTransaction({
+        ...transactionData,
+        amount: parseFloat(String(transactionData.amount)),
+      });
+      
+      console.log('Saved transaction:', newTransaction);
+      
+      // Update state
+      setTransactions(prev => [...prev, newTransaction]);
+      const updatedCategories = await getAllCategories();
+      setCategories(updatedCategories);
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+    }
   };
   
-  const addCategory = (categoryData: Omit<Category, 'id'>) => {
+  const addCategory = async (categoryData: Omit<Category, 'id'>) => {
     console.log('Adding category:', categoryData);
     
-    const category: Category = {
-      ...categoryData,
-      id: crypto.randomUUID()
-    };
-    
-    console.log('Created category with ID:', category);
-    setCategories(prev => [...prev, category]);
+    try {
+      // Add to database through API
+      const newCategory = await apiAddCategory(categoryData);
+      console.log('Created category:', newCategory);
+      
+      // Update state
+      const updatedCategories = await getAllCategories();
+      setCategories(updatedCategories);
+    } catch (error) {
+      console.error('Error adding category:', error);
+    }
   };
 
   const addBudget = (budget: any) => {
     setBudgets(prev => [...prev, budget]);
   };
 
-  const deleteCategory = (id: string) => {
-    setCategories(prev => prev.filter(c => c.id !== id));
+  const deleteCategory = async (id: string) => {
+    try {
+      // Delete from database through API
+      await apiDeleteCategory(id);
+      
+      // Update state
+      const updatedCategories = await getAllCategories();
+      setCategories(updatedCategories);
+    } catch (error) {
+      console.error('Error deleting category:', error);
+    }
   };
 
-  const deleteTransaction = (id: string) => {
+  const deleteTransaction = async (id: string) => {
     console.log('Deleting transaction:', id);
-    setTransactions(prev => prev.filter(t => t.id !== id));
+    
+    try {
+      // Delete from database through API
+      await apiDeleteTransaction(id);
+      
+      // Update state
+      setTransactions(prev => prev.filter(t => t.id !== id));
+      const updatedCategories = await getAllCategories();
+      setCategories(updatedCategories);
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+    }
   };
 
   return (

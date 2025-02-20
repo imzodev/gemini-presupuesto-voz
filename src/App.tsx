@@ -7,6 +7,7 @@ import Sidebar from './components/Sidebar';
 import DashboardPage from './pages/DashboardPage';
 
 function App() {
+  console.log('App component rendering');
   return (
     <Router>
       <BudgetProvider>
